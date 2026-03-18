@@ -569,6 +569,7 @@ body { top: 0 !important }
 @media(max-width:360px) { .nav-link{padding:8px 10px;font-size:11px} .hero-h1{font-size:24px} .logo{font-size:17px;padding:7px 14px} }
 @supports(padding:max(0px)) { .bottom-nav { bottom: max(22px,env(safe-area-inset-bottom,22px)) } }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -986,20 +987,51 @@ document.addEventListener('keydown', function(e) { if (e.key==='Escape') closeP(
 /* ══════════════════════════════════
    CONTACT FORM
 ══════════════════════════════════ */
+/* EmailJS credentials */
+var _EJS = { sid:'service_g724xgv', tid:'template_qowsqq5', pk:'xH4aQdYdc8UZn3YLH', init:false };
+
+function _ejsInit() {
+  if (_EJS.init) return;
+  try { emailjs.init(_EJS.pk); _EJS.init=true; } catch(e) {}
+}
+
+function _mailtoFallback(n, em, s, m) {
+  var body = 'Name: '+n+'%0AEmail: '+em+'%0A%0A'+m;
+  window.location.href = 'mailto:freefire987156@gmail.com?subject='+encodeURIComponent(s)+'&body='+body;
+}
+
 function sendForm() {
   var n=document.getElementById('fn').value.trim(), em=document.getElementById('fe').value.trim();
   var s=document.getElementById('fs').value.trim(), m=document.getElementById('fm').value.trim();
   if (!n||!em||!s||!m) { alert('Please fill in all fields.'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { alert('Please enter a valid email.'); return; }
-  var btn=document.getElementById('sbtn'); btn.textContent='Opening Mail...'; btn.disabled=true;
-  var body='Name: '+n+'%0AEmail: '+em+'%0A%0A'+m;
-  window.location.href='mailto:freefire987156@gmail.com?subject='+encodeURIComponent(s)+'&body='+body;
-  setTimeout(function() {
-    document.getElementById('smsg').style.display='block';
-    ['fn','fe','fs','fm'].forEach(function(id){document.getElementById(id).value='';});
+  var btn=document.getElementById('sbtn');
+  btn.textContent='Sending...'; btn.disabled=true;
+
+  /* Try EmailJS first */
+  try {
+    _ejsInit();
+    emailjs.send(_EJS.sid, _EJS.tid, {
+      name: n, email: em, subject: s, message: m
+    }).then(function() {
+      /* SUCCESS */
+      document.getElementById('smsg').style.display='block';
+      document.getElementById('smsg').innerHTML='✅ Message sent! I will get back to you soon.';
+      ['fn','fe','fs','fm'].forEach(function(id){document.getElementById(id).value='';});
+      btn.textContent='Send Message ✦'; btn.disabled=false;
+      setTimeout(function(){document.getElementById('smsg').style.display='none';}, 5000);
+    }, function(err) {
+      /* EmailJS failed — fallback to mailto */
+      console.warn('EmailJS failed, using mailto fallback:', err);
+      btn.textContent='Send Message ✦'; btn.disabled=false;
+      _mailtoFallback(n, em, s, m);
+    });
+  } catch(e) {
+    /* EmailJS not loaded — fallback to mailto */
+    console.warn('EmailJS not available, using mailto fallback:', e);
     btn.textContent='Send Message ✦'; btn.disabled=false;
-    setTimeout(function(){document.getElementById('smsg').style.display='none';}, 5000);
-  }, 1500);
+    _mailtoFallback(n, em, s, m);
+  }
 }
 
 /* ══════════════════════════════════
